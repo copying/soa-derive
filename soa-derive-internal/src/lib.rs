@@ -11,10 +11,14 @@ use quote::TokenStreamExt;
 
 mod input;
 mod vec;
+mod single_length_vec;
 mod refs;
 mod ptr;
 mod slice;
 mod iter;
+mod utils;
+
+const USE_RAW_VEC : bool = cfg!(feature = "use_raw_vec");
 
 #[proc_macro_derive(StructOfArray, attributes(soa_derive))]
 pub fn soa_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -22,7 +26,12 @@ pub fn soa_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = input::Input::new(ast);
 
     let mut generated = TokenStream::new();
-    generated.append_all(vec::derive(&input));
+    let vec = if USE_RAW_VEC {
+        single_length_vec::derive(&input)
+    } else {
+        vec::derive(&input)
+    };
+    generated.append_all(vec);
     generated.append_all(refs::derive(&input));
     generated.append_all(ptr::derive(&input));
     generated.append_all(slice::derive(&input));

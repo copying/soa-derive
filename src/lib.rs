@@ -155,6 +155,10 @@
 //! # }
 //! ```
 
+// Use raw_internals when enabled
+#![cfg_attr(feature = "use_raw_vec", feature(raw_vec_internals))]
+
+
 // The proc macro is implemented in soa_derive_internal, and re-exported by this
 // crate. This is because a single crate can not define both a proc macro and a
 // macro_rules macro.

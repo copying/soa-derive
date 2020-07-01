@@ -21,6 +21,10 @@ members = [
 [dependencies]
 soa_derive_internal = {path = "soa-derive-internal", version = "0.9"}
 
+[features]
+default = []
+use_raw_vec = ["soa_derive_internal/use_raw_vec"]
+
 [dev-dependencies]
 bencher = "0.1"
 
