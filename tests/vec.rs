@@ -1,3 +1,5 @@
+#![feature(raw_vec_internals)]
+
 mod particles;
 use self::particles::{Particle, ParticleVec};
 
