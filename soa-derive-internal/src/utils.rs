@@ -14,7 +14,7 @@ where
     quote!{
         mod #module {
             #generated
-        };
+        }
         #visibility use #module::{#(#exported),*};
     }
 }
