@@ -185,14 +185,14 @@ pub fn derive(input: &Input) -> TokenStream {
             /// ::is_empty()`](https://doc.rust-lang.org/std/vec/struct.Vec.html#method.is_empty),
             /// all the fields should have the same length.
             pub fn is_empty(&self) -> bool {
-                self.len() == 0
+                self.len == 0
             }
 
             /// Similar to [`
             #[doc = #vec_name_str]
             /// ::swap_remove()`](https://doc.rust-lang.org/std/vec/struct.Vec.html#method.swap_remove).
             pub fn swap_remove(&mut self, index: usize) -> #name {
-                let length = self.len();
+                let length = self.len;
                 let mut slices = self.as_mut_slice();
                 #(slices.#fields_names_1.swap(index, length - 1);)*
                 self.pop().unwrap()
@@ -331,7 +331,7 @@ pub fn derive(input: &Input) -> TokenStream {
 
                     #(
                         ptr::copy_nonoverlapping(
-                            self.#fields_names_1.ptr().offset(at),
+                            self.#fields_names_1.ptr().offset(at as isize),
                             other.#fields_names_2.ptr(),
                             other_len,
                         );
@@ -384,6 +384,30 @@ pub fn derive(input: &Input) -> TokenStream {
 
             /// Similar to [`
             #[doc = #vec_name_str]
+            /// ::retain()`](https://doc.rust-lang.org/std/vec/struct.Vec.html#method.retain).
+            pub fn retain<F>(&mut self, mut f: F)
+                where F: FnMut(#ref_name) -> bool
+            {
+                let len = self.len();
+                let mut del = 0;
+
+                {
+                    let mut slice = self.as_mut_slice();
+                    for i in 0..len {
+                        if !f(slice.get(i).unwrap()) {
+                            del += 1;
+                        } else if del > 0 {
+                            slice.swap(i - del, i);
+                        }
+                    }
+                }
+                if del > 0 {
+                    self.truncate(len - del);
+                }
+            }
+
+            /// Similar to [`
+            #[doc = #vec_name_str]
             /// ::as_ptr()`](https://doc.rust-lang.org/std/struct.Vec.html#method.as_ptr).
             pub fn as_ptr(&self) -> #ptr_name {
                 #ptr_name {
@@ -420,7 +444,7 @@ pub fn derive(input: &Input) -> TokenStream {
                 }
 
                 self.reserve(n);
-                #(internal_extend(&mut self.#fields_names_1, self.len(), n, value.#fields_names_2);)*
+                #(internal_extend(&mut self.#fields_names_1, self.len, n, value.#fields_names_2);)*
                 self.len += n;
             }
         }
