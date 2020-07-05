@@ -189,6 +189,31 @@ pub fn derive(input: &Input) -> TokenStream {
 
             /// Similar to [`
             #[doc = #vec_name_str]
+            /// ::get()`](https://doc.rust-lang.org/std/vec/struct.Vec.html#method.get)
+            pub fn get<'a: 'b, 'b>(&'a self, index: usize) -> Option<#ref_name<'b>> {
+                let slice = self.as_slice();
+                Some(#ref_name {
+                    #(
+                        #fields_names_1: slice.#fields_names_2.get(index)?,
+                    )*
+                })
+            }
+
+            /// Similar to [`
+            #[doc = #vec_name_str]
+            /// ::get_mut()`](https://doc.rust-lang.org/std/vec/struct.Vec.html#method.get_mut)
+            pub fn get_mut<'a: 'b, 'b>(&'a mut self, index: usize) -> Option<#ref_mut_name<'b>> {
+                let slice = self.as_mut_slice();
+                Some(#ref_mut_name {
+                    #(
+                        #fields_names_1: slice.#fields_names_2.get_mut(index)?,
+                    )*
+                })
+            }
+
+
+            /// Similar to [`
+            #[doc = #vec_name_str]
             /// ::swap_remove()`](https://doc.rust-lang.org/std/vec/struct.Vec.html#method.swap_remove).
             pub fn swap_remove(&mut self, index: usize) -> #name {
                 let length = self.len;
