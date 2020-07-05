@@ -16,7 +16,6 @@ mod refs;
 mod ptr;
 mod slice;
 mod iter;
-mod utils;
 
 const USE_RAW_VEC : bool = cfg!(feature = "use_raw_vec");
 

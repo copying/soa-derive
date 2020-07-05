@@ -3,7 +3,6 @@ use syn::Ident;
 use quote::TokenStreamExt;
 use quote::quote;
 
-use crate::utils::safe_wrap;
 use crate::input::Input;
 
 
@@ -34,8 +33,8 @@ pub fn derive(input: &Input) -> TokenStream {
             #(#derives,)*
         )]
     };
-
     let visibility = &input.visibility;
+    let detail_mod = Ident::new(&format!("__detail_vec_{}", name.to_string().to_lowercase()), Span::call_site());
     let original_name = &input.name;
     let vec_name = &input.vec_name();
     let slice_name = &input.slice_name();
@@ -502,7 +501,11 @@ pub fn derive(input: &Input) -> TokenStream {
         });
     }
 
-    let result = safe_wrap(generated, [&vec_name].iter(), visibility);
-    // println!("{}", result);
-    result
+    quote!{
+        #[allow(non_snake_case, dead_code)]
+        mod #detail_mod {
+            #generated
+        }
+        pub use #detail_mod::#vec_name;
+    }
 }
