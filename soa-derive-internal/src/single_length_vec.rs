@@ -36,10 +36,12 @@ pub fn derive(input: &Input) -> TokenStream {
     };
 
     let visibility = &input.visibility;
+    let original_name = &input.name;
     let vec_name = &input.vec_name();
     let slice_name = &input.slice_name();
     let slice_mut_name = &input.slice_mut_name();
     let ref_name = &input.ref_name();
+    let ref_mut_name = &input.ref_mut_name();
     let ptr_name = &input.ptr_name();
     let ptr_mut_name = &input.ptr_mut_name();
 
@@ -60,10 +62,15 @@ pub fn derive(input: &Input) -> TokenStream {
 
     let mut generated = quote! {
         extern crate alloc;
-        use std::slice;
-        use std::ptr;
+
         use alloc::raw_vec::RawVec;
-        use super::{#slice_name, #slice_mut_name, #ref_name, #ptr_name, #ptr_mut_name};
+        use std::fmt;
+        use core::ops::Index;
+        use core::ops::IndexMut;
+        use std::ptr;
+        use std::slice;
+
+        use super::{#original_name, #slice_name, #slice_mut_name, #ref_name, #ptr_name, #ptr_mut_name};
 
         /// An analog to `
         #[doc = #vec_name_str]
@@ -118,6 +125,14 @@ pub fn derive(input: &Input) -> TokenStream {
             /// making sure all fields have the required additional space.
             pub fn reserve(&mut self, additional: usize) {
                 #(self.#fields_names_1.reserve(self.len, additional);)*
+            }
+
+            /// Similar to [`
+            #[doc = #vec_name_str]
+            /// ::reserve_exact()`](https://doc.rust-lang.org/std/vec/struct.Vec.html#method.reserve_exact)
+            /// reserving the same `additional` space for all fields.
+            pub fn reserve_exact(&mut self, additional: usize) {
+                #(self.#fields_names_1.reserve_exact(self.len, additional);)*
             }
 
             /// Similar to [`
@@ -267,7 +282,7 @@ pub fn derive(input: &Input) -> TokenStream {
             /// Similar to [`
             #[doc = #vec_name_str]
             /// ::append()`](https://doc.rust-lang.org/std/vec/struct.Vec.html#method.append).
-            pub fn append(&mut self, other: #vec_name) {
+            pub fn append(&mut self, other: &mut #vec_name) {
                 fn append_elements<T>(src: &RawVec<T>, srclen: usize, dst: &mut RawVec<T>, dstlen: usize) {
                     dst.reserve(dstlen, srclen);
                     unsafe {
@@ -277,9 +292,11 @@ pub fn derive(input: &Input) -> TokenStream {
 
                 let len = self.len();
                 let otherlen = other.len();
+                self.reserve(otherlen);
                 #(
                     append_elements(&other.#fields_names_1, otherlen, &mut self.#fields_names_2, len);
                 )*
+                other.len = 0;
                 self.len += otherlen;
             }
 
@@ -288,6 +305,39 @@ pub fn derive(input: &Input) -> TokenStream {
             /// ::clear()`](https://doc.rust-lang.org/std/vec/struct.Vec.html#method.clear).
             pub fn clear(&mut self) {
                 self.truncate(0);
+            }
+
+            /// Similar to [`
+            #[doc = #vec_name_str]
+            /// ::split_off()`](https://doc.rust-lang.org/std/vec/struct.Vec.html#method.split_off).
+            pub fn split_off(&mut self, at: usize) -> Self {
+                #[cold]
+                #[inline(never)]
+                fn assert_failed(at: usize, len: usize) -> ! {
+                    panic!("`at` split index (is {}) should be <= len (is {})", at, len);
+                }
+
+                if at > self.len() {
+                    assert_failed(at, self.len());
+                }
+
+                let other_len = self.len - at;
+                let mut other = #vec_name::with_capacity(other_len);
+
+                // Unsafely `set_len` and copy items to `other`.
+                unsafe {
+                    self.len = at;
+                    other.len = other_len;
+
+                    #(
+                        ptr::copy_nonoverlapping(
+                            self.#fields_names_1.ptr().offset(at),
+                            other.#fields_names_2.ptr(),
+                            other_len,
+                        );
+                    )*
+                }
+                other
             }
 
             /// Similar to [`
@@ -349,9 +399,9 @@ pub fn derive(input: &Input) -> TokenStream {
                     #(#fields_names_1: self.#fields_names_2.ptr(),)*
                 }
             }
-            
-            pub fn extend_with(n: usize, value: #name) {
-                fn internal_extend<T>(buf: &mut RawVec<T>, len: usize, n: usize, value: T) {
+
+            pub fn extend_with(&mut self, n: usize, value: #name) {
+                fn internal_extend<T: Clone>(buf: &mut RawVec<T>, len: usize, n: usize, value: T) {
                     unsafe {
                         let mut ptr = buf.ptr().offset(len as isize);
                         for _ in 1..n {
@@ -369,7 +419,7 @@ pub fn derive(input: &Input) -> TokenStream {
                     return;
                 }
 
-                self.reserve(len);
+                self.reserve(n);
                 #(internal_extend(&mut self.#fields_names_1, self.len(), n, value.#fields_names_2);)*
                 self.len += n;
             }
@@ -412,7 +462,20 @@ pub fn derive(input: &Input) -> TokenStream {
     }
 
     if debug {
-        // TODO
+        generated.append_all(quote!{
+            impl fmt::Debug for #vec_name {
+                fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                    f.debug_struct(stringify!(#vec_name))
+                        #(
+                            .field(stringify!(#fields_names_1), &(
+                                f.debug_list()
+                                    .finish()
+                            ))
+                        )*
+                        .finish()
+                }
+            }
+        });
     }
 
     let result = safe_wrap(generated, [&vec_name].iter(), visibility);
