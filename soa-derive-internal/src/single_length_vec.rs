@@ -58,18 +58,22 @@ pub fn derive(input: &Input) -> TokenStream {
                                     .map(|field| &field.ty)
                                     .collect::<Vec<_>>();
 
-
-    let mut generated = quote! {
+    let mut imports = quote!{
         extern crate alloc;
 
         use alloc::raw_vec::RawVec;
-        use std::fmt;
-        use core::ops::Index;
-        use core::ops::IndexMut;
         use std::ptr;
         use std::slice;
 
         use super::{#original_name, #slice_name, #slice_mut_name, #ref_name, #ref_mut_name, #ptr_name, #ptr_mut_name};
+    };
+    if debug {
+        imports.append_all(quote!{
+            use std::fmt;
+        });
+    }
+    let mut generated = quote! {
+        #imports
 
         /// An analog to `
         #[doc = #vec_name_str]
