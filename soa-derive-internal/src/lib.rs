@@ -16,6 +16,7 @@ mod refs;
 mod ptr;
 mod slice;
 mod iter;
+mod single_length_iter;
 
 const USE_RAW_VEC : bool = cfg!(feature = "use_raw_vec");
 
@@ -35,6 +36,12 @@ pub fn soa_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     generated.append_all(ptr::derive(&input));
     generated.append_all(slice::derive(&input));
     generated.append_all(slice::derive_mut(&input));
-    generated.append_all(iter::derive(&input));
+    let iter = if USE_RAW_VEC {
+        single_length_iter::derive(&input)
+    } else {
+        iter::derive(&input)
+    };
+    generated.append_all(iter);
+    // println!("{}", generated);
     generated.into()
 }
