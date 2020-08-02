@@ -78,7 +78,7 @@ pub fn derive(input: &Input) -> TokenStream {
                     unsafe {
                         Some(#ref_mut_name {
                             #(
-                                #fields_names_1: &mut *self.vec.#fields_names_2.ptr().offset(n as isize),
+                                #fields_names_1: &mut *self.vec.#fields_names_2.ptr().add(n),
                             )*
                         })
                     }

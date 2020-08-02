@@ -160,7 +160,7 @@ pub fn derive(input: &Input) -> TokenStream {
                         let i = self.len;
 
                         // Drop elements manually
-                        #(ptr::drop_in_place(self.#fields_names_1.ptr().offset(i as isize));)*
+                        #(ptr::drop_in_place(self.#fields_names_1.ptr().add(i));)*
                     }
                 }
             }
@@ -171,7 +171,7 @@ pub fn derive(input: &Input) -> TokenStream {
             pub fn push(&mut self, value: #name) {
                 fn internal_push<T>(buf: &mut RawVec<T>, value: T, index: usize) {
                     unsafe {
-                        let ptr = buf.ptr().offset(index as isize);
+                        let ptr = buf.ptr().add(index);
                         ptr::write(ptr, value);
                     }
                 }
@@ -242,7 +242,7 @@ pub fn derive(input: &Input) -> TokenStream {
                     unsafe {
                         // infallible
                         // The spot to put the new value
-                        let p = buf.ptr().offset(index as isize);
+                        let p = buf.ptr().add(index);
                         // Shift everything over to make space. (Duplicating the
                         // `index`th element into two consecutive places.)
                         ptr::copy(p, p.offset(1), len - index);
@@ -271,7 +271,7 @@ pub fn derive(input: &Input) -> TokenStream {
                         let ret;
                         {
                             // the place we are taking from.
-                            let ptr = buf.ptr().offset(index as isize);
+                            let ptr = buf.ptr().add(index);
                             // copy it out, unsafely having a copy of the value on
                             // the stack and in the vector at the same time.
                             ret = ptr::read(ptr);
@@ -314,7 +314,7 @@ pub fn derive(input: &Input) -> TokenStream {
                 fn append_elements<T>(src: &RawVec<T>, srclen: usize, dst: &mut RawVec<T>, dstlen: usize) {
                     dst.reserve(dstlen, srclen);
                     unsafe {
-                        ptr::copy_nonoverlapping(src.ptr(), dst.ptr().offset(dstlen as isize), srclen)
+                        ptr::copy_nonoverlapping(src.ptr(), dst.ptr().add(dstlen), srclen)
                     }
                 }
 
@@ -359,7 +359,7 @@ pub fn derive(input: &Input) -> TokenStream {
 
                     #(
                         ptr::copy_nonoverlapping(
-                            self.#fields_names_1.ptr().offset(at as isize),
+                            self.#fields_names_1.ptr().add(at),
                             other.#fields_names_2.ptr(),
                             other_len,
                         );
@@ -455,7 +455,7 @@ pub fn derive(input: &Input) -> TokenStream {
             pub fn extend_with(&mut self, n: usize, value: #name) {
                 fn internal_extend<T: Clone>(buf: &mut RawVec<T>, len: usize, n: usize, value: T) {
                     unsafe {
-                        let mut ptr = buf.ptr().offset(len as isize);
+                        let mut ptr = buf.ptr().add(len);
                         for _ in 1..n {
                             ptr::write(ptr, value.clone());
                             ptr = ptr.offset(1);
