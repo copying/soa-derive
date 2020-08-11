@@ -226,7 +226,7 @@ pub fn derive(input: &Input) -> TokenStream {
             /// ::swap_remove()`](https://doc.rust-lang.org/std/vec/struct.Vec.html#method.swap_remove).
             pub fn swap_remove(&mut self, index: usize) -> #name {
                 let length = self.len;
-                let mut slices = self.as_mut_slice();
+                let slices = self.as_mut_slice();
                 #(slices.#fields_names_1.swap(index, length - 1);)*
                 self.pop().unwrap()
             }
@@ -499,12 +499,14 @@ pub fn derive(input: &Input) -> TokenStream {
         generated.append_all(quote!{
             impl Clone for #vec_name {
                 fn clone(&self) -> #vec_name {
-                    fn internal_clone<T>(source: & RawVec<T>, len: usize) -> RawVec<T>{
+                    fn internal_clone<T>(source: & RawVec<T>, len: usize) -> RawVec<T> {
                         let target = RawVec::with_capacity(len);
-                        let source_slice = slice::from_raw_parts(source.ptr(), len);
-                        let target_slice = slice::from_raw_parts_mut(target.ptr(), len);
-                        for i in 0..len {
-                            target[i] = source[i];
+                        unsafe {
+                            let source_slice = slice::from_raw_parts(source.ptr(), len);
+                            let target_slice = slice::from_raw_parts_mut(target.ptr(), len);
+                            for i in 0..len {
+                                target_slice[i] = source_slice[i];
+                            }
                         }
                         target
                     }
@@ -522,12 +524,10 @@ pub fn derive(input: &Input) -> TokenStream {
         generated.append_all(quote!{
             impl fmt::Debug for #vec_name {
                 fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                    let slices = self.as_slice();
                     f.debug_struct(stringify!(#vec_name))
                         #(
-                            .field(stringify!(#fields_names_1), &(
-                                f.debug_list()
-                                    .finish()
-                            ))
+                            .field(stringify!(#fields_names_1), &slices.#fields_names_2)
                         )*
                         .finish()
                 }
@@ -540,9 +540,9 @@ pub fn derive(input: &Input) -> TokenStream {
             impl PartialEq<#vec_name> for #vec_name {
                 fn eq(&self, other: &#vec_name) -> bool {
                     let this_slice = self.as_slice();
-                    let other_slice = self.as_slice();
+                    let other_slice = other.as_slice();
 
-                    #(this_slice.#fields_names_1 == this_slice.#fields_names_2 &&)* true
+                    #(this_slice.#fields_names_1 == other_slice.#fields_names_2 &&)* true
                 }
             }
         });

@@ -25,7 +25,7 @@ pub fn derive(input: &Input) -> TokenStream {
         mod #detail_mod {
             use super::{#vec_name, #ref_name, #ref_mut_name};
 
-            struct VecIter<'a> {
+            pub struct VecIter<'a> {
                 vec: &'a #vec_name,
                 n: usize,
             }
@@ -53,7 +53,7 @@ pub fn derive(input: &Input) -> TokenStream {
             }
 
             impl #vec_name {
-                fn iter<'a>(&'a self) -> VecIter<'a> {
+                pub fn iter<'a>(&'a self) -> VecIter<'a> {
                     VecIter {
                         vec: self,
                         n: 0,
@@ -62,7 +62,7 @@ pub fn derive(input: &Input) -> TokenStream {
             }
 
 
-            struct VecIterMut<'a> {
+            pub struct VecIterMut<'a> {
                 vec: &'a mut #vec_name,
                 n: usize,
             }
@@ -94,7 +94,7 @@ pub fn derive(input: &Input) -> TokenStream {
             }
 
             impl #vec_name {
-                fn iter_mut<'a>(&'a mut self) -> VecIterMut<'a> {
+                pub fn iter_mut<'a>(&'a mut self) -> VecIterMut<'a> {
                     VecIterMut {
                         vec: self,
                         n: 0,
