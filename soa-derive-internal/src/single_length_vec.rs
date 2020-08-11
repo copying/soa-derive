@@ -9,6 +9,7 @@ use crate::input::Input;
 pub fn derive(input: &Input) -> TokenStream {
     let mut debug = false;
     let mut clone = false;
+    let mut partial_eq = false;
 
     let name = &input.name;
     let vec_name_str = format!("Vec<{}>", name);
@@ -22,6 +23,10 @@ pub fn derive(input: &Input) -> TokenStream {
                 },
                 "Clone" => {
                     clone = true;
+                    false
+                },
+                "PartialEq" => {
+                    partial_eq = true;
                     false
                 },
                 _ => true
@@ -525,6 +530,19 @@ pub fn derive(input: &Input) -> TokenStream {
                             ))
                         )*
                         .finish()
+                }
+            }
+        });
+    }
+
+    if partial_eq {
+        generated.append_all(quote!{
+            impl PartialEq<#vec_name> for #vec_name {
+                fn eq(&self, other: &#vec_name) -> bool {
+                    let this_slice = self.as_slice();
+                    let other_slice = self.as_slice();
+
+                    #(this_slice.#fields_names_1 == this_slice.#fields_names_2 &&)* true
                 }
             }
         });
