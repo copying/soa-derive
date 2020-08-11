@@ -1,3 +1,4 @@
+#![feature(raw_vec_internals)]
 #![deny(warnings)]
 
 use soa_derive::StructOfArray;
